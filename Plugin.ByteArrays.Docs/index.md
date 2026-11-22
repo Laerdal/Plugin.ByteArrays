@@ -21,9 +21,9 @@ using Plugin.ByteArrays;
 // Build byte arrays fluently
 using var builder = new ByteArrayBuilder();
 byte[] data = builder
-    .Append(0x01)
+    .Append((byte)0x01)       // 1 byte
     .AppendUtf8String("Hello")
-    .Append(42)
+    .Append(42)               // int: 4 bytes
     .ToByteArray();
 
 // Read primitives from byte arrays
@@ -87,7 +87,7 @@ Build byte arrays fluently from various data types:
 Extract data from byte arrays safely:
 
 - **Primitives**: `ToBoolean`, `ToByte`, `ToInt32`, `ToDouble`, etc.
-- **Strings**: `ToUtf8String`, `ToAsciiString`, `ToHexString`
+- **Strings**: `ToUtf8String`, `ToAsciiString`, `ToUtf16String`, `ToHexString`
 - **Date & Time**: `ToDateTime`, `ToTimeSpan`, `ToDateTimeFromUnixTimestamp`
 - **Network Types**: `ToIPAddress`, `ToIPEndPoint`, big-endian conversions
 - **Complex Types**: `ToEnum<T>`, `ToVersion`, `ToGuid`
@@ -101,7 +101,7 @@ Powerful array operations:
 - **Concatenation**: `Concatenate` multiple arrays efficiently
 - **Trimming**: `TrimEnd` and `TrimEndNonDestructive`
 - **Transformation**: `Reverse`, `Xor` operations
-- **Analysis**: `CalculateEntropy`, `AnalyzeDistribution`
+- **Analysis**: `CalculateEntropy`, `GetByteFrequency` (`AnalyzeDistribution` on spans)
 
 ### 🔎 Pattern Matching
 
@@ -124,9 +124,9 @@ Comprehensive networking capabilities:
 
 Asynchronous processing with cancellation:
 
-- **File I/O**: `WriteToFileAsync`, `ReadFromFileAsync`
-- **Parallel Processing**: Multi-threaded array operations
-- **Cryptographic**: Hash computation and random generation
+- **File and stream I/O**: `WriteToFileAsync`, `ReadFromFileAsync`, `WriteToStreamAsync`, `ReadFromStreamAsync`
+- **Chunked processing**: `ProcessInParallelAsync`, `TransformAsync`
+- **Hashing**: `ComputeHashAsync`, `VerifyIntegrityAsync`
 
 ### 🗃️ Compression
 
@@ -142,8 +142,7 @@ Advanced analysis and formatting:
 
 - **Binary Representation**: Convert to binary strings
 - **Statistical Analysis**: Entropy and distribution calculation
-- **Performance Measurement**: Built-in timing utilities
-- **Memory Analysis**: Memory usage estimation
+- **Performance Measurement**: `MeasurePerformance` and `CalculateThroughput`
 
 ---
 
@@ -226,7 +225,7 @@ var pos = 0;
 DateTime restored = data.ToDateTime(ref pos);
 
 // Unix timestamp support
-int unixTime = 1672502400;
+int unixTime = 1672531200; // 2023-01-01 00:00:00 UTC
 byte[] timeData = BitConverter.GetBytes(unixTime);
 pos = 0;
 DateTime fromUnix = timeData.ToDateTimeFromUnixTimestamp(ref pos);
@@ -249,7 +248,9 @@ IPAddress restored = ipData.ToIPAddress(ref pos);
 
 // Network endpoints with big-endian ports
 var endpoint = new IPEndPoint(ipv4, 8080);
-byte[] endpointData = SerializeEndpoint(endpoint); // Custom serialization
+byte[] endpointData = ipv4.GetAddressBytes()
+    .Concat(new byte[] { 0x1F, 0x90 })              // port 8080, big-endian
+    .ToArray();
 pos = 0;
 var restoredEndpoint = endpointData.ToIPEndPoint(ref pos);
 
@@ -259,10 +260,10 @@ pos = 0;
 int sequenceNumber = networkPacket.ToInt32BigEndian(ref pos); // 0x12345678
 
 // TLV protocol parsing
-byte[] tlvData = { 0x01, 0x00, 0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F };
+byte[] tlvData = { 0x01, 0x05, 0x00, 0x48, 0x65, 0x6C, 0x6C, 0x6F }; // Type, Length (little-endian), Value
 pos = 0;
-var tlv = tlvData.ParseTlv(ref pos);
-string value = Encoding.UTF8.GetString(tlv.Value); // "Hello"
+var tlv = tlvData.ParseTlvRecord(ref pos);
+string value = Encoding.UTF8.GetString(tlv.Value.ToArray()); // "Hello"
 ```
 
 ### Async Operations with Cancellation
@@ -274,23 +275,23 @@ await data.WriteToFileAsync("output.bin");
 
 byte[] fileData = await ByteArrayAsyncExtensions.ReadFromFileAsync("input.bin");
 
-// Parallel processing with timeout
-var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-byte[][] chunks = SplitDataIntoChunks(largeData, chunkSize: 1024);
+// Chunked parallel processing with timeout: the array is split into chunks
+using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+byte[] largeData = new byte[1024 * 1024];
 
-var results = await chunks.ProcessInParallelAsync(
-    async (chunk, ct) => {
-        // Process each chunk
-        await SimulateAsyncWork(chunk, ct);
+byte[][] results = await largeData.ProcessInParallelAsync(
+    async chunk => {
+        await Task.Yield(); // your async work per chunk
         return chunk.CompressGZip();
     },
-    maxDegreeOfParallelism: Environment.ProcessorCount,
+    chunkSize: 1024,
+    maxConcurrency: Environment.ProcessorCount,
     cancellationToken: cts.Token
 );
 
-// Cryptographic operations
-byte[] hash = await data.ComputeSha256Async();
-byte[] randomData = await ByteArrayAsyncExtensions.GenerateRandomBytesAsync(32);
+// Hashing
+byte[] hash = await data.ComputeHashAsync("SHA256");
+bool intact = await data.VerifyIntegrityAsync(hash, "SHA256");
 ```
 
 ### Compression and Analysis
@@ -304,21 +305,20 @@ byte[] deflateData = originalData.CompressDeflate();
 byte[] brotliData = originalData.CompressBrotli();
 
 Console.WriteLine($"Original: {originalData.Length:N0} bytes");
-Console.WriteLine($"GZip: {gzipData.Length:N0} bytes ({GetCompressionRatio(originalData, gzipData):P1})");
-Console.WriteLine($"Brotli: {brotliData.Length:N0} bytes ({GetCompressionRatio(originalData, brotliData):P1})");
+Console.WriteLine($"GZip: {gzipData.Length:N0} bytes ({ByteArrayCompressionExtensions.CalculateCompressionRatio(originalData, gzipData):P1})");
+Console.WriteLine($"Brotli: {brotliData.Length:N0} bytes ({ByteArrayCompressionExtensions.CalculateCompressionRatio(originalData, brotliData):P1})");
 
 // Statistical analysis
 double entropy = originalData.CalculateEntropy();
-var distribution = originalData.AnalyzeDistribution();
+var frequency = originalData.GetByteFrequency();
+var mostFrequent = frequency.MaxBy(kv => kv.Value);
 
 Console.WriteLine($"Data entropy: {entropy:F3}");
-Console.WriteLine($"Most frequent byte: 0x{distribution.MostFrequentByte:X2} ({distribution.MaxFrequency} occurrences)");
+Console.WriteLine($"Most frequent byte: 0x{mostFrequent.Key:X2} ({mostFrequent.Value} occurrences)");
 
 // Performance measurement
-var stopwatch = originalData.StartPerformanceMeasurement();
-// Perform operations...
-var elapsed = originalData.StopPerformanceMeasurement(stopwatch);
-Console.WriteLine($"Processing took: {elapsed.TotalMilliseconds:F2}ms");
+var (result, totalTime, averageTime) = originalData.MeasurePerformance(d => d.CompressGZip(), iterations: 10);
+Console.WriteLine($"Average compression time: {averageTime.TotalMilliseconds:F2}ms");
 ```
 
 ### Working with Complex Data
@@ -345,10 +345,9 @@ var id = data.ToGuid(ref pos);
 var binaryData = data.SafeSlice(pos, 4);
 
 // TLV record creation and parsing
-var tlvRecord = new TlvRecord(0x01, "Hello World".Utf8StringToByteArray());
-byte[] tlvBytes = tlvRecord.ToByteArray();
+byte[] tlvBytes = ByteArrayProtocolExtensions.CreateTlvRecord(0x01, "Hello World".Utf8StringToByteArray());
 pos = 0;
-var parsedTlv = tlvBytes.ParseTlv(ref pos);
+var parsedTlv = tlvBytes.ParseTlvRecord(ref pos);
 ```
 
 ---

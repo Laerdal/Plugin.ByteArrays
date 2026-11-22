@@ -256,7 +256,7 @@ Console.WriteLine($"Compression throughput: {throughput / 1_000_000:F2} MB/s");
 var operations = new[]
 {
     ("CRC32", new Func<byte[], object>(arr => arr.CalculateCrc32())),
-    ("MD5", new Func<byte[], object>(arr => arr.ToMd5())),
+    ("GZip", new Func<byte[], object>(arr => arr.CompressGZip())),
     ("Entropy", new Func<byte[], object>(arr => arr.CalculateEntropy()))
 };
 
