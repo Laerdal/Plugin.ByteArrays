@@ -241,7 +241,9 @@ jobs:
         with:
           file: '${{ github.workspace }}/tests/coverage.cobertura.xml'
           language: 'C#'
-          label: code-coverage-agent
+          label: code-coverage/coverlet
+          # Coverage is informational: an upload hiccup (or a restricted token on a bot PR) must not turn CI red.
+          fail-on-error: false
 
   publish-docs:
     name: '🚀 Deploy to GitHub Pages'
