@@ -184,4 +184,57 @@ public class ReadOnlySpanUtilitiesTests
         var result = span1.Xor(span2);
         result.Should().BeEmpty();
     }
+
+    // Lengths around the SIMD vector widths (16/32/64 bytes) so both the vectorized body and the scalar tail run.
+    public static TheoryData<int> VectorBoundaryLengths => new() { 0, 1, 15, 16, 17, 31, 32, 33, 63, 64, 65, 257 };
+
+    [Theory]
+    [MemberData(nameof(VectorBoundaryLengths))]
+    public void CountOccurrences_VectorBoundaryLengths_MatchesExpectedCount(int length)
+    {
+        var bytes = new byte[length];
+        var expected = 0;
+        for (var i = 0; i < length; i++)
+        {
+            bytes[i] = (byte)(i % 3);
+            if (bytes[i] == 1)
+            {
+                expected++;
+            }
+        }
+
+        ((ReadOnlySpan<byte>)bytes).CountOccurrences(1).Should().Be(expected);
+    }
+
+    [Theory]
+    [MemberData(nameof(VectorBoundaryLengths))]
+    public void IsAllZeros_VectorBoundaryLengths_DetectsNonZeroAtAnyPosition(int length)
+    {
+        ((ReadOnlySpan<byte>)new byte[length]).IsAllZeros().Should().BeTrue();
+
+        foreach (var position in new[] { 0, length / 2, length - 1 }.Where(p => p >= 0 && p < length).Distinct())
+        {
+            var bytes = new byte[length];
+            bytes[position] = 1;
+            ((ReadOnlySpan<byte>)bytes).IsAllZeros().Should().BeFalse($"a non-zero byte sits at index {position}");
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(VectorBoundaryLengths))]
+    public void AllBytesEqual_VectorBoundaryLengths_DetectsDifferingByteAtAnyPosition(int length)
+    {
+        var uniform = new byte[length];
+        Array.Fill(uniform, (byte)0xAB);
+        ((ReadOnlySpan<byte>)uniform).AllBytesEqual().Should().BeTrue();
+
+        foreach (var position in new[] { 0, length / 2, length - 1 }.Where(p => p >= 0 && p < length).Distinct())
+        {
+            var bytes = (byte[])uniform.Clone();
+            bytes[position] = 0xCD;
+
+            // A single byte can never differ from itself, so a one-element span stays "all equal".
+            ((ReadOnlySpan<byte>)bytes).AllBytesEqual().Should().Be(length == 1, $"index {position} of {length} differs");
+        }
+    }
 }
