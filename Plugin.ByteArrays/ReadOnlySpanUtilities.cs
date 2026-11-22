@@ -71,15 +71,7 @@ public static class ReadOnlySpanUtilities
     /// <returns>The number of occurrences of the specified byte value.</returns>
     public static int CountOccurrences(this ReadOnlySpan<byte> span, byte value)
     {
-        var count = 0;
-        foreach (var b in span)
-        {
-            if (b == value)
-            {
-                count++;
-            }
-        }
-        return count;
+        return span.Count(value);
     }
 
     /// <summary>
@@ -108,20 +100,7 @@ public static class ReadOnlySpanUtilities
     /// <returns>True if all bytes are identical or span is empty; otherwise, false.</returns>
     public static bool AllBytesEqual(this ReadOnlySpan<byte> span)
     {
-        if (span.IsEmpty)
-        {
-            return true;
-        }
-
-        var firstByte = span[0];
-        for (var i = 1; i < span.Length; i++)
-        {
-            if (span[i] != firstByte)
-            {
-                return false;
-            }
-        }
-        return true;
+        return span.IsEmpty || !span.ContainsAnyExcept(span[0]);
     }
 
     /// <summary>
@@ -131,14 +110,7 @@ public static class ReadOnlySpanUtilities
     /// <returns>True if all bytes are zero or span is empty; otherwise, false.</returns>
     public static bool IsAllZeros(this ReadOnlySpan<byte> span)
     {
-        foreach (var b in span)
-        {
-            if (b != 0)
-            {
-                return false;
-            }
-        }
-        return true;
+        return !span.ContainsAnyExcept((byte)0);
     }
 
     /// <summary>
