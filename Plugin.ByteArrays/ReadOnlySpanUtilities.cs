@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace Plugin.ByteArrays;
 
 /// <summary>
@@ -54,14 +56,8 @@ public static class ReadOnlySpanUtilities
 
         foreach (var b in span)
         {
-            if (!distribution.TryGetValue(b, out var count))
-            {
-                distribution[b] = 1;
-            }
-            else
-            {
-                distribution[b] = count + 1;
-            }
+            // One hash lookup per byte: the ref is a default 0 for a new key.
+            CollectionsMarshal.GetValueRefOrAddDefault(distribution, b, out _)++;
         }
 
         return distribution;
