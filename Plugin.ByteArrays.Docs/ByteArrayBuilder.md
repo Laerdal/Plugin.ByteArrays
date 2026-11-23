@@ -201,7 +201,7 @@ builder.AppendNullTerminatedString(\"Config\", Encoding.ASCII);
 //          string content              |null|
 
 // Network protocol example
-builder.AppendByte(1)  // Protocol version
+builder.Append((byte)1)  // Protocol version
        .AppendLengthPrefixedString(\"GET /api/data\", Encoding.ASCII)
        .AppendNullTerminatedString(\"Host: example.com\", Encoding.ASCII);
 
@@ -325,7 +325,7 @@ builder.Append(sessionId)     // 16 bytes
        .Append(requestId);    // 16 bytes
 
 // Protocol message with GUIDs
-builder.AppendByte(1)         // Message version
+builder.Append((byte)1)         // Message version
        .Append(sessionId)     // Session identifier
        .Append(requestId)     // Request identifier
        .AppendLengthPrefixedString(\"API_CALL\", Encoding.ASCII);
@@ -454,8 +454,8 @@ var payloadBytes = Encoding.UTF8.GetBytes(payload);
 
 // Frame header (network byte order)
 builder.AppendBigEndian(payloadBytes.Length)  // 4 bytes: payload length
-       .AppendByte(0x01)                      // 1 byte: frame type (DATA)
-       .AppendByte(0x00)                      // 1 byte: flags
+       .Append((byte)0x01)                      // 1 byte: frame type (DATA)
+       .Append((byte)0x00)                      // 1 byte: flags
        .AppendBigEndian(12345);               // 4 bytes: stream ID
 
 // Frame payload
@@ -517,19 +517,19 @@ foreach (var setting in config.Settings)
     switch (setting.Value)
     {
         case string str:
-            builder.AppendByte(1) // Type: string
+            builder.Append((byte)1) // Type: string
                    .AppendLengthPrefixedString(str, Encoding.UTF8);
             break;
         case int integer:
-            builder.AppendByte(2) // Type: int
+            builder.Append((byte)2) // Type: int
                    .Append(integer);
             break;
         case bool boolean:
-            builder.AppendByte(3) // Type: bool
+            builder.Append((byte)3) // Type: bool
                    .Append(boolean);
             break;
         case double dbl:
-            builder.AppendByte(4) // Type: double
+            builder.Append((byte)4) // Type: double
                    .Append(dbl);
             break;
     }
@@ -601,7 +601,7 @@ void BuildProtocolMessage(ByteArrayBuilder builder, MessageData data)
     if (data.Content.Length > 1000)
         throw new ArgumentException(\"Message content too long\");
 
-    builder.AppendByte(data.Type)
+    builder.Append(data.Type)
            .AppendLengthPrefixedString(data.Content, Encoding.UTF8)
            .Append(data.Timestamp);
 }
@@ -653,7 +653,7 @@ for (int i = 0; i < 10; i++)
 {
     builder.Clear(); // Reset for reuse
 
-    builder.AppendByte((byte)i)
+    builder.Append((byte)i)
            .AppendUtf8String($\"Message {i}\")
            .Append(DateTime.Now);
 

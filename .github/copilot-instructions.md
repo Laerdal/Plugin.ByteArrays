@@ -34,7 +34,7 @@ Plugin.ByteArrays/
 │   ├── ReadOnlySpanExtensions.*.cs
 │   ├── ByteArrayBuilder.cs       # Fluent builder
 │   └── *.cs                      # Other utilities
-├── Plugin.ByteArrays.Tests/      # Unit tests (616+ tests)
+├── Plugin.ByteArrays.Tests/      # Unit tests
 └── Plugin.ByteArrays.Docs/       # Documentation site
 ```
 
@@ -228,7 +228,7 @@ var value = array.ToInt32OrDefault(ref position, defaultValue: -1);
 // Automatically advance position through a buffer
 var position = 0;
 var id = buffer.ToInt32(ref position);      // position now = 4
-var name = buffer.ToStringUtf8(ref position, length: 20); // position now = 24
+var name = buffer.ToUtf8String(ref position, numberOfBytesToRead: 20); // position now = 24
 var timestamp = buffer.ToDateTime(ref position); // position now = 32
 ```
 
