@@ -350,7 +350,9 @@ string binary = data.ToBinaryString(); // "10101010 10111011 11001100 11011101"
 string dump = data.ToHexDump();        // offsets, hex and ASCII columns
 
 // Statistical analysis
-double entropy = data.CalculateEntropy();                  // 0.0 (ordered) to 8.0 (random)
+// Entropy of the byte-value distribution; the order of the bytes is ignored:
+// 0.0 = a single distinct value, 8.0 = all 256 values equally frequent
+double entropy = data.CalculateEntropy();
 Dictionary<byte, int> frequency = data.GetByteFrequency(); // byte value -> count
 byte mostFrequent = frequency.MaxBy(kv => kv.Value).Key;
 Console.WriteLine($"Entropy: {entropy:F3}, Most frequent byte: 0x{mostFrequent:X2}");
@@ -363,7 +365,9 @@ bool allZeros = span.IsAllZeros();
 // Performance measurement
 var (hex, totalTime, averageTime) = data.MeasurePerformance(d => d.ToHexString(), iterations: 1000);
 Console.WriteLine($"Average: {averageTime.TotalMilliseconds:F4}ms");
-double bytesPerSecond = data.CalculateThroughput(totalTime);
+// totalTime covers all 1000 iterations; CalculateThroughput divides data.Length by the duration it is given,
+// so pass the time of a single run
+double bytesPerSecond = data.CalculateThroughput(averageTime);
 ```
 
 ### Object Serialization

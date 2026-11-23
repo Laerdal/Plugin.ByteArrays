@@ -110,7 +110,7 @@ Console.WriteLine(dump);
 ## Data Analysis
 
 ### CalculateEntropy
-Calculates the Shannon entropy of the byte array (0-8, where 8 is maximum entropy).
+Calculates the Shannon entropy of the byte-value distribution, in bits per byte (0-8). It counts how often each value occurs and ignores their order: 0 means a single distinct value, 8 means all 256 values equally frequent.
 
 #### Syntax
 ```csharp
@@ -301,8 +301,9 @@ public class ByteArrayAnalyzer
         }
 
         // Performance measurement
-        var (_, time, _) = data.MeasurePerformance(arr => arr.CalculateEntropy(), 100);
-        var throughput = data.CalculateThroughput(time);
+        // CalculateThroughput expects the time of a single run, so pass the average, not the total
+        var (_, _, averageTime) = data.MeasurePerformance(arr => arr.CalculateEntropy(), 100);
+        var throughput = data.CalculateThroughput(averageTime);
 
         Console.WriteLine($"Entropy calculation: {throughput / 1_000_000:F2} MB/s");
 

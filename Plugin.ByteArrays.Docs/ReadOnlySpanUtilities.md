@@ -30,9 +30,9 @@ The `ReadOnlySpanUtilities` class provides utility functions for analyzing and m
 public static double CalculateEntropy(this ReadOnlySpan<byte> span)
 ```
 
-Calculates the Shannon entropy of the `ReadOnlySpan<byte>`. Entropy is a measure of randomness/unpredictability in the data.
+Calculates the Shannon entropy of the byte-value distribution of the `ReadOnlySpan<byte>`, in bits per byte. It counts how often each value occurs and ignores their order, so any permutation of the same bytes has the same entropy.
 
-**Returns:** A value between 0.0 (perfectly ordered) and 8.0 (maximum entropy for bytes)
+**Returns:** A value between 0.0 (a single distinct byte value) and 8.0 (all 256 values equally frequent)
 
 **Performance:** O(n) where n is span length
 
@@ -52,10 +52,9 @@ double noEntropy = uniform.CalculateEntropy(); // Returns: 0.0
 
 **Use Cases:**
 
-- Testing random number generators
-- Validating encryption output
+- Checking how evenly generated data uses the 256 byte values (a sanity check, not a randomness test)
+- Spotting data that is probably already compressed or encrypted (close to 8 bits per byte)
 - Detecting compression opportunities
-- Quality assurance for randomized data
 
 #### AnalyzeDistribution
 
