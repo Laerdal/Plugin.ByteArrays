@@ -139,10 +139,14 @@ public static class ByteArrayUtilities
     #region Basic Analysis
 
     /// <summary>
-    ///     Calculates the entropy of the byte array (0-8, where 8 is maximum entropy).
+    ///     Calculates the Shannon entropy of the byte-value distribution of the byte array, in bits per byte.
+    ///     It counts how often each value occurs and ignores their order, so any permutation of the same bytes
+    ///     has the same entropy.
     /// </summary>
     /// <param name="array">The byte array to analyze.</param>
-    /// <returns>The entropy value.</returns>
+    /// <returns>
+    ///     A value between 0.0 (a single distinct byte value) and 8.0 (all 256 values equally frequent).
+    /// </returns>
     public static double CalculateEntropy(this byte[] array)
     {
         ArgumentNullException.ThrowIfNull(array);

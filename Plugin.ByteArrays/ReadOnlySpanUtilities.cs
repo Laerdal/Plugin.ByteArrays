@@ -8,12 +8,14 @@ namespace Plugin.ByteArrays;
 public static class ReadOnlySpanUtilities
 {
     /// <summary>
-    ///     Calculates the Shannon entropy of the ReadOnlySpan&lt;byte&gt;.
-    ///     Entropy is a measure of randomness/unpredictability in the data.
-    ///     Returns a value between 0.0 (perfectly ordered) and 8.0 (maximum entropy for bytes).
+    ///     Calculates the Shannon entropy of the byte-value distribution of the ReadOnlySpan&lt;byte&gt;, in bits per byte.
+    ///     It counts how often each value occurs and ignores their order, so any permutation of the same bytes
+    ///     has the same entropy.
     /// </summary>
     /// <param name="span">The ReadOnlySpan&lt;byte&gt; to analyze.</param>
-    /// <returns>The calculated entropy value.</returns>
+    /// <returns>
+    ///     A value between 0.0 (a single distinct byte value) and 8.0 (all 256 values equally frequent).
+    /// </returns>
     public static double CalculateEntropy(this ReadOnlySpan<byte> span)
     {
         if (span.IsEmpty)
